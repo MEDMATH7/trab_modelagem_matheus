@@ -9,9 +9,6 @@ import pandas as pd
 
 
 
-# Initialize the ReactorSimulator with given parameters
-
-# Define parameters as a dictionary
 params = {
     'Fi': 40,            # lbm/h
     'V': 200,            # ft^3

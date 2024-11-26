@@ -43,9 +43,8 @@ class ReactorSimulator:
         self.Fc = params.get('Fc', 40)           # lbm/h
         self.Vc = params.get('Vc', 400)          # ft^3
         
-        # tempo
-        self.t_span = params.get('t_span', (0, 50))  # hora
-        self.t_eval = params.get('t_eval', np.linspace(0, 50, 500))  # hora -> intervalo de tempo para ser avalaido
+        self.t_span = params.get('t_span', (0, 50)) 
+        self.t_eval = params.get('t_eval', np.linspace(0, 50, 500))
         
         #  Pertubacoes
         self.pertubacoes = {}
@@ -63,79 +62,41 @@ class ReactorSimulator:
         """
         return self.k0 * np.exp(-self.Ea2 / (self.R * T))
     
-    def reactor_odes(self, t, y):
-        """
-        criando as equacoes diferenciais
-        
-        parametros:
-            t: tempo
-            y: CA, CB, CC, T, Tc
-        
-        gera uma lista de variaveis [dCA/dt, dCB/dt, dCC/dt, dT/dt, dTc/dt]
-        """
-        CA, CB, CC, T, Tc = y
-        # Reacao
-        r1 = self.k1(T) * CA
-        r2 = self.k2(T) * CB
-        # Balanco de massa
-        dCA_dt = (self.Fi / self.V) * (self.CA_in - CA) - r1
-        dCB_dt = - (self.Fi / self.V) * CB + r1 - r2
-        dCC_dt = - (self.Fi / self.V) * CC + r2
-        # Balanco de energia
-        dT_dt = (self.Fi * self.rho * self.Cp * (self.T_in - T) + 
-                 (-self.DeltaH1) * self.V * r1 + 
-                 (-self.DeltaH2) * self.V * r2 - 
-                 self.UA * (T - Tc)) / (self.rho * self.V * self.Cp)
-        dTc_dt = (self.UA * (T - Tc) + self.Fc * self.rho * self.Cp * (self.Tc_in - Tc)) / (self.rho * self.V * self.Cp)
-        return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
-    
-    def simulate(self, pertubacoes=None):
-        """
-        com solve_ivp do scipy ai simular as equacoes ordinarias
-        
-        parametros:
-            pertubacoes: Ha no dicionario algumas (Tc_in e CA_in). 
-        """
-        if pertubacoes is None:
-            # sem pertubacao
-            return solve_ivp(self.reactor_odes, self.t_span, [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0], t_eval=self.t_eval)
-        else:
 
-            # quando ha pertubacoes
-            def reactor_odes_disturbance(t, y):
-                CA, CB, CC, T, Tc = y
-                # Check for disturbances
-                if 'Tc_in' in pertubacoes:
-                    if t >= pertubacoes['Tc_in']['time']:
-                        Tc_in_current = pertubacoes['Tc_in']['value']
-                    else:
-                        Tc_in_current = self.Tc_in
-                else:
-                    Tc_in_current = self.Tc_in
-                
-                if 'CA_in' in pertubacoes:
-                    if t >= pertubacoes['CA_in']['time']:
-                        CA_in_current = pertubacoes['CA_in']['value']
-                    else:
-                        CA_in_current = self.CA_in
-                else:
-                    CA_in_current = self.CA_in
-                
-                # taxa de reacao
-                r1 = self.k1(T) * CA
-                r2 = self.k2(T) * CB
-                # BM
-                dCA_dt = (self.Fi / self.V) * (CA_in_current - CA) - r1
-                dCB_dt = - (self.Fi / self.V) * CB + r1 - r2
-                dCC_dt = - (self.Fi / self.V) * CC + r2
-                # BEEnergy balances
-                dT_dt = (self.Fi * self.rho * self.Cp * (self.T_in - T) + 
-                         (-self.DeltaH1) * self.V * r1 + 
-                         (-self.DeltaH2) * self.V * r2 - 
-                         self.UA * (T - Tc)) / (self.rho * self.V * self.Cp)
-                dTc_dt = (self.UA * (T - Tc) + self.Fc * self.rho * self.Cp * (Tc_in_current - Tc)) / (self.rho * self.V * self.Cp)
-                return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
-            return solve_ivp(reactor_odes_disturbance, self.t_span, [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0], t_eval=self.t_eval)
+    def simulate(self, pertubacoes=None, t_span=None, t_eval=None, y0=None):
+        if t_span is None:
+            t_span = self.t_span
+        if t_eval is None:
+            t_eval = self.t_eval
+        if y0 is None:
+            y0 = [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0]
+        def reactor_odes(t, y):
+            CA, CB, CC, T, Tc = y
+            CA_in_current = self.CA_in
+            Tc_in_current = self.Tc_in
+            if pertubacoes is not None:
+                if 'CA_in' in pertubacoes and t >= pertubacoes['CA_in']['time']:
+                    CA_in_current = pertubacoes['CA_in']['value']
+                if 'Tc_in' in pertubacoes and t >= pertubacoes['Tc_in']['time']:
+                    Tc_in_current = pertubacoes['Tc_in']['value']
+
+            r1 = self.k1(T) * CA
+            r2 = self.k2(T) * CB
+         
+            dCA_dt = (self.Fi / self.V) * (CA_in_current - CA) - r1
+            dCB_dt = - (self.Fi / self.V) * CB + r1 - r2
+            dCC_dt = - (self.Fi / self.V) * CC + r2
+         
+            dT_dt = (self.Fi * self.rho * self.Cp * (self.T_in - T) +
+                     (-self.DeltaH1) * self.V * r1 +
+                     (-self.DeltaH2) * self.V * r2 -
+                     self.UA * (T - Tc)) / (self.rho * self.V * self.Cp)
+            dTc_dt = (self.UA * (T - Tc) + self.Fc * self.rho * self.Cp * (Tc_in_current - Tc)) / (self.rho * self.V * self.Cp)
+            return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
+        
+        solution = solve_ivp(reactor_odes, t_span, y0, t_eval=t_eval)
+        return solution
+
 
     def plot_concentrations(self, solution,save_as = None):
         """
@@ -196,18 +157,21 @@ class ReactorSimulator:
             'Tc_ss': Tc_ss
         }
     
-    def simulate_disturbance(self, pertubacoes_time, pertubacoes_valores):
-        """
-        simula sob pertubacoes
-        
-        Parametros:
-            pertubacoes_time: tempo onde temos pertubacao (hours)
-            pertubacoes_valores dicionario...
-        """        
-        pertubacao = {}
+    
+
+    def simulate_disturbance(self, pertubacoes_time, pertubacoes_valores, t_end):
+
+        t_span = (self.t_span[0], t_end)
+        t_eval = np.linspace(t_span[0], t_end, int((t_end - self.t_span[0]) * 1000))
+
+ 
+        pertubacoes = {}
         for var, val in pertubacoes_valores.items():
-            pertubacao[var] = {'time': pertubacoes_time, 'value': val}
-        solution = self.simulate(disturbance=pertubacao)
+            pertubacoes[var] = {'time': pertubacoes_time, 'value': val}
+
+        # Simulate with perturbations
+        solution = self.simulate(pertubacoes=pertubacoes, t_span=t_span, t_eval=t_eval)
+
         return solution
     
     def sensitivity_analysis(self, param, mud_percent):
@@ -270,7 +234,7 @@ class ReactorSimulator:
         # Create DataFrame from collected data
         results = pd.DataFrame(data)
 
-        return 
+        return results
     
     def plot_sensitivity(self, results, variable,save_as):
         """
