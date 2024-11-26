@@ -104,7 +104,38 @@ class ReactorSimulator:
             # quando ha pertubacoes
             def reactor_odes_disturbance(t, y):
                 CA, CB, CC, T, Tc = y
-                pass
+                # Check for disturbances
+                if 'Tc_in' in pertubacoes:
+                    if t >= pertubacoes['Tc_in']['time']:
+                        Tc_in_current = pertubacoes['Tc_in']['value']
+                    else:
+                        Tc_in_current = self.Tc_in
+                else:
+                    Tc_in_current = self.Tc_in
+                
+                if 'CA_in' in pertubacoes:
+                    if t >= pertubacoes['CA_in']['time']:
+                        CA_in_current = pertubacoes['CA_in']['value']
+                    else:
+                        CA_in_current = self.CA_in
+                else:
+                    CA_in_current = self.CA_in
+                
+                # taxa de reacao
+                r1 = self.k1(T) * CA
+                r2 = self.k2(T) * CB
+                # BM
+                dCA_dt = (self.Fi / self.V) * (CA_in_current - CA) - r1
+                dCB_dt = - (self.Fi / self.V) * CB + r1 - r2
+                dCC_dt = - (self.Fi / self.V) * CC + r2
+                # BEEnergy balances
+                dT_dt = (self.Fi * self.rho * self.Cp * (self.T_in - T) + 
+                         (-self.DeltaH1) * self.V * r1 + 
+                         (-self.DeltaH2) * self.V * r2 - 
+                         self.UA * (T - Tc)) / (self.rho * self.V * self.Cp)
+                dTc_dt = (self.UA * (T - Tc) + self.Fc * self.rho * self.Cp * (Tc_in_current - Tc)) / (self.rho * self.V * self.Cp)
+                return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
+            return solve_ivp(reactor_odes_disturbance, self.t_span, [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0], t_eval=self.t_eval)
 
     def plot_concentrations(self, solution):
         """
@@ -138,7 +169,22 @@ class ReactorSimulator:
         plt.show()
     
 
-
+    def get_steady_state(self, solution):
+        """
+    This function will make the estado estacionario from scipy.
+        """
+        CA_ss = solution.y[0, -1]
+        CB_ss = solution.y[1, -1]
+        CC_ss = solution.y[2, -1]
+        T_ss = solution.y[3, -1]
+        Tc_ss = solution.y[4, -1]
+        return {
+            'CA_ss': CA_ss,
+            'CB_ss': CB_ss,
+            'CC_ss': CC_ss,
+            'T_ss': T_ss,
+            'Tc_ss': Tc_ss
+        }
     
         pass
 
