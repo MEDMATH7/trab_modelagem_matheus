@@ -101,8 +101,45 @@ class ReactorSimulator:
             return solve_ivp(self.reactor_odes, self.t_span, [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0], t_eval=self.t_eval)
         else:
 
-            # TBD
-            
-            pass
-        
-         
+            # quando ha pertubacoes
+            def reactor_odes_disturbance(t, y):
+                CA, CB, CC, T, Tc = y
+                pass
+
+    def plot_concentrations(self, solution):
+        """
+        plotar os graficos de concentracao
+        """
+        CA, CB, CC = solution.y[0], solution.y[1], solution.y[2]
+        plt.figure(figsize=(10,6))
+        plt.plot(solution.t, CA, label='CA')
+        plt.plot(solution.t, CB, label='CB')
+        plt.plot(solution.t, CC, label='CC')
+        plt.xlabel('Time (h)')
+        plt.ylabel('Concentracao (lbm/ft^3)')
+        plt.legend()
+        plt.title('Perfis de concentracao')
+        plt.grid(True)
+        plt.show()
+    
+    def plot_temperatures(self, solution):
+        """
+        Plotar os graficos de temperatura
+        """
+        T, Tc = solution.y[3], solution.y[4]
+        plt.figure(figsize=(10,6))
+        plt.plot(solution.t, T, label='Temperatura do reator')
+        plt.plot(solution.t, Tc, label='Temperatura da camsia de resfriamento')
+        plt.xlabel('Time (h)')
+        plt.ylabel('Temperatura (R)')
+        plt.legend()
+        plt.title('Perfis de Temperatura')
+        plt.grid(True)
+        plt.show()
+    
+
+
+    
+        pass
+
+
