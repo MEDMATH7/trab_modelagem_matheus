@@ -51,4 +51,43 @@ class ReactorSimulator:
         self.pertubacoes = {}
 
 
+    def k1(self, T):
+        """
+        Calcula k1
+        """
+        return self.k0 * np.exp(-self.Ea1 / (self.R * T))
+    
+    def k2(self, T):
+        """
+        Calcula k2
+        """
+        return self.k0 * np.exp(-self.Ea2 / (self.R * T))
+    
+    def reactor_odes(self, t, y):
+        """
+        criando as equacoes diferenciais
+        
+        parametros:
+            t: tempo
+            y: CA, CB, CC, T, Tc
+        
+        gera uma lista de variaveis [dCA/dt, dCB/dt, dCC/dt, dT/dt, dTc/dt]
+        """
+        CA, CB, CC, T, Tc = y
+        # Reacao
+        r1 = self.k1(T) * CA
+        r2 = self.k2(T) * CB
+        # Balanco de massa
+        dCA_dt = (self.Fi / self.V) * (self.CA_in - CA) - r1
+        dCB_dt = - (self.Fi / self.V) * CB + r1 - r2
+        dCC_dt = - (self.Fi / self.V) * CC + r2
+        # Balanco de energia
+        dT_dt = (self.Fi * self.rho * self.Cp * (self.T_in - T) + 
+                 (-self.DeltaH1) * self.V * r1 + 
+                 (-self.DeltaH2) * self.V * r2 - 
+                 self.UA * (T - Tc)) / (self.rho * self.V * self.Cp)
+        dTc_dt = (self.UA * (T - Tc) + self.Fc * self.rho * self.Cp * (self.Tc_in - Tc)) / (self.rho * self.V * self.Cp)
+        return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
+
+
     pass 
