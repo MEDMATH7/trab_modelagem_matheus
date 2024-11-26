@@ -186,6 +186,92 @@ class ReactorSimulator:
             'Tc_ss': Tc_ss
         }
     
-        pass
+    def simulate_disturbance(self, pertubacoes_time, pertubacoes_valores):
+        """
+        simula sob pertubacoes
+        
+        Parametros:
+            pertubacoes_time: tempo onde temos pertubacao (hours)
+            pertubacoes_valores dicionario...
+        """        
+        pertubacao = {}
+        for var, val in pertubacoes_valores.items():
+            pertubacao[var] = {'time': pertubacoes_time, 'value': val}
+        solution = self.simulate(disturbance=pertubacao)
+        return solution
+    
+    def sensitivity_analysis(self, param, mud_percent):
+        """
+        Parametros:
+            param -> dicionario de parametros
+            mud_percent (list or array): mudanca nos valores em porcentagem (e.g., [-0.5, 0.25, 1.0, ...])
+        """
+        data = []
+
+        for pct in mud_percent:
+            if param == 'rho_c':
+                rho_c_var = self.rho * (1 + pct)
+                Cp_c_var = self.Cp
+            elif param == 'Cp_c':
+                rho_c_var = self.rho
+                Cp_c_var = self.Cp * (1 + pct)
+            elif param == 'both':
+                rho_c_var = self.rho * (1 + pct)
+                Cp_c_var = self.Cp * (1 + pct)
+            else:
+                raise ValueError("deve variar somente 'rho_c', 'Cp_c' ou 'both'")
+
+            # modifica as equacoes ordinarias
+            def reactor_odes_sensitivity(t, y):
+                CA, CB, CC, T, Tc = y
+                
+                r1 = self.k1(T) * CA
+                r2 = self.k2(T) * CB
+                
+                dCA_dt = (self.Fi / self.V) * (self.CA_in - CA) - r1
+                dCB_dt = - (self.Fi / self.V) * CB + r1 - r2
+                dCC_dt = - (self.Fi / self.V) * CC + r2
+            
+                dT_dt = (self.Fi * self.rho * self.Cp * (self.T_in - T) +
+                         (-self.DeltaH1) * self.V * r1 +
+                         (-self.DeltaH2) * self.V * r2 -
+                         self.UA * (T - Tc)) / (self.rho * self.V * self.Cp)
+                dTc_dt = (self.UA * (T - Tc) + self.Fc * rho_c_var * Cp_c_var * (self.Tc_in - Tc)) / (rho_c_var * self.V * Cp_c_var)
+                return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
+
+            
+            solution_sens = solve_ivp(reactor_odes_sensitivity, self.t_span, [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0], t_eval=self.t_eval)
+            
+            CA_ss = solution_sens.y[0, -1]
+            CB_ss = solution_sens.y[1, -1]
+            CC_ss = solution_sens.y[2, -1]
+            T_ss = solution_sens.y[3, -1]
+            Tc_ss = solution_sens.y[4, -1]
+            
+            data.append({
+                '% Change': pct * 100,
+                'CA_ss': CA_ss,
+                'CB_ss': CB_ss,
+                'CC_ss': CC_ss,
+                'T_ss': T_ss,
+                'Tc_ss': Tc_ss
+            })
+
+        # Create DataFrame from collected data
+        results = pd.DataFrame(data)
+
+        return 
+    
+    def plot_sensitivity(self, results, variable):
+        """
+        Plot sensitivity analysis results.
+        """
+        plt.figure(figsize=(10,6))
+        plt.plot(results['% Change'], results[variable], marker='o')
+        plt.xlabel('% Change in rho_c and Cp_c')
+        plt.ylabel(variable)
+        plt.title(f'Sensitivity Analysis: {variable} vs % Change in Cooling Fluid Properties')
+        plt.grid(True)
+        plt.show()
 
 
