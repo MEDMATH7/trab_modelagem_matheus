@@ -137,7 +137,7 @@ class ReactorSimulator:
                 return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
             return solve_ivp(reactor_odes_disturbance, self.t_span, [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0], t_eval=self.t_eval)
 
-    def plot_concentrations(self, solution):
+    def plot_concentrations(self, solution,save_as = None):
         """
         plotar os graficos de concentracao
         """
@@ -151,9 +151,14 @@ class ReactorSimulator:
         plt.legend()
         plt.title('Perfis de concentracao')
         plt.grid(True)
-        plt.show()
+        if save_as:
+            plt.savefig(save_as, dpi=300)
+            print(f"Plot saved as {save_as}")
+        else:
+        
+            plt.show()
     
-    def plot_temperatures(self, solution):
+    def plot_temperatures(self, solution,save_as = None):
         """
         Plotar os graficos de temperatura
         """
@@ -166,7 +171,12 @@ class ReactorSimulator:
         plt.legend()
         plt.title('Perfis de Temperatura')
         plt.grid(True)
-        plt.show()
+        if save_as:
+            plt.savefig(save_as, dpi=300)
+            print(f"Plot saved as {save_as}")
+        else:
+        
+            plt.show()
     
 
     def get_steady_state(self, solution):
@@ -262,7 +272,7 @@ class ReactorSimulator:
 
         return 
     
-    def plot_sensitivity(self, results, variable):
+    def plot_sensitivity(self, results, variable,save_as):
         """
         Plot sensitivity analysis results.
         """
@@ -272,6 +282,11 @@ class ReactorSimulator:
         plt.ylabel(variable)
         plt.title(f'Sensitivity Analysis: {variable} vs % Change in Cooling Fluid Properties')
         plt.grid(True)
-        plt.show()
+        if save_as:
+            plt.savefig(save_as, dpi=300)
+            print(f"Plot saved as {save_as}")
+        else:
+        
+            plt.show()
 
 
