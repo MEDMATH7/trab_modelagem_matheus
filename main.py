@@ -88,6 +88,21 @@ class ReactorSimulator:
                  self.UA * (T - Tc)) / (self.rho * self.V * self.Cp)
         dTc_dt = (self.UA * (T - Tc) + self.Fc * self.rho * self.Cp * (self.Tc_in - Tc)) / (self.rho * self.V * self.Cp)
         return [dCA_dt, dCB_dt, dCC_dt, dT_dt, dTc_dt]
+    
+    def simulate(self, pertubacoes=None):
+        """
+        com solve_ivp do scipy ai simular as equacoes ordinarias
+        
+        parametros:
+            pertubacoes: Ha no dicionario algumas (Tc_in e CA_in). 
+        """
+        if pertubacoes is None:
+            # sem pertubacao
+            return solve_ivp(self.reactor_odes, self.t_span, [self.CA0, self.CB0, self.CC0, self.T0, self.Tc0], t_eval=self.t_eval)
+        else:
 
-
-    pass 
+            # TBD
+            
+            pass
+        
+         
